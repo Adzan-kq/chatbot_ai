@@ -6,6 +6,7 @@ export default function Home() {
   const [question, setQuestion] = useState("");
   const [result, setResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -13,9 +14,19 @@ export default function Home() {
     if (!trimmed) return;
 
     setLoading(true);
+    setError(null);
     try {
-      // TODO: replace with a real call to the chatbot backend.
-      setResult(`You asked: "${trimmed}"`);
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: trimmed }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Something went wrong");
+      setResult(data.answer);
+    } catch (err) {
+      setResult(null);
+      setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -55,7 +66,11 @@ export default function Home() {
           <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
             Result
           </h2>
-          {result ? (
+          {loading ? (
+            <p className="text-zinc-500 dark:text-zinc-400">Thinking...</p>
+          ) : error ? (
+            <p className="text-red-600 dark:text-red-400">{error}</p>
+          ) : result ? (
             <p className="whitespace-pre-wrap text-zinc-700 dark:text-zinc-300">{result}</p>
           ) : (
             <p className="text-zinc-500 dark:text-zinc-400">
